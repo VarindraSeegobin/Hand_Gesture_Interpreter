@@ -16,7 +16,7 @@ print(minVol, maxVol)
 
 cap = cv2.VideoCapture(0)
 
-handtracker = ht.HandDetector(detectionCon=0.65, maxHands=1)
+handtracker = ht.HandDetector(detectionCon=0.75, maxHands=1, trackCon=0.75)
 
 minVol, maxVol = volume.GetVolumeRange()[:2]
 
@@ -25,6 +25,14 @@ def set_volume_from_hand_distance(hand_distance, min_hand=0.3, max_hand=1.5):
     interpolated_dB = np.interp(hand_distance, [min_hand, max_hand], [minVol, maxVol])
     volume.SetMasterVolumeLevel(interpolated_dB, None)
 
+def calc_distance(p1, p2):
+    return math.hypot(p2[1] - p1[1], p2[2] - p1[2])
+
+
+def get_normalized_distance(landmarks, pointA_id, pointB_id, reference_id1, reference_id2):
+    dist = calc_distance(landmarks[pointA_id], landmarks[pointB_id])
+    ref = calc_distance(landmarks[reference_id1], landmarks[reference_id2])
+    return dist / ref if ref != 0 else 0
 
 while True:
     ret,frame = cap.read()
@@ -41,7 +49,7 @@ while True:
 
         d = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         ref = math.sqrt((xr2 - xr1) ** 2 + (yr2 - yr1) ** 2)
-        norm_dist = round((d / ref if ref != 0 else 0),1)
+        norm_dist = get_normalized_distance(landmarks, 4, 8, 0, 9)
         print(f"Normalized distance: {norm_dist:.2f}")
         set_volume_from_hand_distance(norm_dist)
         cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
